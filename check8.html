@@ -1,0 +1,89 @@
+<html>
+<head>
+    <script src= "http://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular.min.js"></script>
+    <style>
+        #map {
+            height:100%;
+        }
+        .infoWindowContent {
+            font-size:  14px !important;
+            padding-top: 10px;
+        }
+        h2 {
+            margin-bottom:0;
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div ng-app="mapsApp" ng-controller="MapCtrl">
+        <div id="map"></div>
+    </div>
+</body>
+<script>
+    //Angular App Module and Controller
+    angular.module('mapsApp', [])
+    .controller('MapCtrl', function ($scope, $timeout, $http) {
+        var cities=[];
+        (function update() {
+            $timeout(update, 20000);
+            $http.get("test.php").success(function(response) {
+                x = response;
+                console.log(x);
+                var y = x.split("=");
+                z=y[1];
+                c=z.split(",");
+                la=c[0].slice(6,15);
+                lo=c[1].slice(5,14);
+                //c=JSON.parse(y[1]);
+                var latlng = {lat: parseFloat(la), lng: parseFloat(lo)};
+                cities.push(latlng);
+                for (i = 0; i < cities.length; i++){
+                    createMarker(cities[i]);
+                }
+            });
+        }())
+      
+        var mapOptions = {
+            zoom: 12,
+            center: new google.maps.LatLng(12.9667, 77.5667)
+        }
+        $scope.map = new google.maps.Map(document.getElementById('map'), mapOptions);
+        $scope.markers = [];
+    
+        var infoWindow = new google.maps.InfoWindow();
+        var geocoder = new google.maps.Geocoder;
+    
+        var createMarker = function (info){
+            var res;
+            var marker = new google.maps.Marker({
+                map: $scope.map,
+                position: new google.maps.LatLng(info.lat, info.lng)
+            });
+            geocoder.geocode({'location': info}, function(results, status) {
+                if (status === google.maps.GeocoderStatus.OK) {
+                    if (results[1]) {
+                        res=results[1].formatted_address;
+                        marker.content = '<div class="infoWindowContent">' + res + '</div>';
+                        google.maps.event.addListener(marker, 'click', function(){
+                            infoWindow.setContent('</h2>' + marker.content);
+                            infoWindow.open($scope.map, marker);
+                        });
+                        $scope.markers.push(marker);
+                    } else {
+                        window.alert('No results found');
+                    }
+                    } else {
+                        window.alert('Geocoder failed due to: ' + status);
+                    }
+            });
+        }  
+    
+        $scope.openInfoWindow = function(e, selectedMarker){
+            e.preventDefault();
+            google.maps.event.trigger(selectedMarker, 'click');
+        }
+    });
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCV3NbAZRc2HmpNjSb6mAZpooOxljTCn6Q&signed_in=true"></script>
+</html>
